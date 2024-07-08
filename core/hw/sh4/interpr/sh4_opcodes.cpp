@@ -3,6 +3,7 @@
 */
 #include "types.h"
 
+#include "emulator.h"
 #include "hw/sh4/sh4_interpreter.h"
 #include "hw/sh4/sh4_mem.h"
 #include "hw/sh4/sh4_mmr.h"
@@ -11,6 +12,8 @@
 #include "hw/sh4/sh4_interrupts.h"
 #include "debug/gdb_server.h"
 #include "hw/sh4/dyna/decoder.h"
+#include "debug/debug_agent.h"
+
 
 #ifdef STRICT_MODE
 #include "hw/sh4/sh4_cache.h"
@@ -18,10 +21,26 @@
 
 //Read Mem macros
 
-#define ReadMemU32(to,addr) to=ReadMem32(addr)
-#define ReadMemS32(to,addr) to=(s32)ReadMem32(addr)
-#define ReadMemS16(to,addr) to=(u32)(s32)(s16)ReadMem16(addr)
-#define ReadMemS8(to,addr)  to=(u32)(s32)(s8)ReadMem8(addr)
+#define checkReadBp(addr) \
+	if (debugAgent.checkMemoryRead(addr)) { \
+		WARN_LOG(COMMON, "Read breakpoint hit at %08X, PC %08X", addr, Sh4cntx.pc); \
+		debugAgent.memoryBreakpointHit(addr); \
+		emu.stop(); \
+		throw debugger::Stop(); \
+	}
+
+#define checkWriteBp(addr) \
+	if (debugAgent.checkMemoryWrite(addr)) { \
+		WARN_LOG(COMMON, "Write breakpoint hit at %08X, PC %08X", addr, Sh4cntx.pc); \
+		debugAgent.memoryBreakpointHit(addr); \
+		emu.stop(); \
+		throw debugger::Stop(); \
+	}
+
+#define ReadMemU32(to,addr)             checkReadBp(addr) to=ReadMem32(addr)
+#define ReadMemS32(to,addr)             checkReadBp(addr) to=(s32)ReadMem32(addr)
+#define ReadMemS16(to,addr)             checkReadBp(addr) to=(u32)(s32)(s16)ReadMem16(addr)
+#define ReadMemS8(to,addr)              checkReadBp(addr) to=(u32)(s32)(s8)ReadMem8(addr)
 
 //Base,offset format
 #define ReadMemBOU32(to,addr,offset)    ReadMemU32(to,addr+offset)
@@ -29,9 +48,9 @@
 #define ReadMemBOS8(to,addr,offset)     ReadMemS8(to,addr+offset)
 
 //Write Mem Macros
-#define WriteMemU32(addr,data)          WriteMem32(addr,(u32)data)
-#define WriteMemU16(addr,data)          WriteMem16(addr,(u16)data)
-#define WriteMemU8(addr,data)           WriteMem8(addr,(u8)data)
+#define WriteMemU32(addr,data)          checkWriteBp(addr) WriteMem32(addr,(u32)data)
+#define WriteMemU16(addr,data)          checkWriteBp(addr) WriteMem16(addr,(u16)data)
+#define WriteMemU8(addr,data)           checkWriteBp(addr) WriteMem8(addr,(u8)data)
 
 //Base,offset format
 #define WriteMemBOU32(addr,offset,data) WriteMemU32(addr+offset,data)
@@ -926,7 +945,13 @@ sh4op(i1011_iiii_iiii_iiii)
 sh4op(i1100_0011_iiii_iiii)
 {
 	WARN_LOG(INTERPRETER, "TRAP #%X", GetImm8(op));
+#ifdef GDB_SERVER
 	debugger::debugTrap(Sh4Ex_Trap);
+#else
+	debugAgent.debugTrap(Sh4Ex_Trap);
+#endif
+	emu.stop(); // This causes a deadlock in the emu thread
+	throw debugger::Stop();
 	CCN_TRA = (GetImm8(op) << 2);
 	Do_Exception(next_pc, Sh4Ex_Trap);
 }
