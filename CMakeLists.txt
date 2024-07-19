@@ -327,26 +327,26 @@ if(NOT LIBRETRO)
 				COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/breakpad/dump_syms
 					-a x86_64
 					-g ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app.dSYM
-					${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app/Contents/MacOS/Flycast > ../symbols/Flycast-x64.sym
+					$<TARGET_FILE:flycast> > ../symbols/Flycast-x64.sym
 				COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/breakpad/dump_syms
 					-a arm64
 					-g ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app.dSYM
-					${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app/Contents/MacOS/Flycast > ../symbols/Flycast-arm64.sym
+					$<TARGET_FILE:flycast> > ../symbols/Flycast-arm64.sym
 			)
 		else()
 			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 				COMMAND sleep 20
 				COMMAND mkdir -p ../symbols
-				COMMAND dsymutil ${CMAKE_CURRENT_BINARY_DIR}/Flycast.app/Contents/MacOS/Flycast
+				COMMAND dsymutil $<TARGET_FILE:flycast>
 					-o ${CMAKE_CURRENT_BINARY_DIR}/Flycast.app.dSYM
 				COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/breakpad/dump_syms
 					-a x86_64
 					-g ${CMAKE_CURRENT_BINARY_DIR}/Flycast.app.dSYM
-					${CMAKE_CURRENT_BINARY_DIR}/Flycast.app/Contents/MacOS/Flycast > ../symbols/Flycast-x64.sym
+					$<TARGET_FILE:flycast> > ../symbols/Flycast-x64.sym
 				COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/breakpad/dump_syms
 					-a arm64
 					-g ${CMAKE_CURRENT_BINARY_DIR}/Flycast.app.dSYM
-					${CMAKE_CURRENT_BINARY_DIR}/Flycast.app/Contents/MacOS/Flycast > ../symbols/Flycast-arm64.sym
+					$<TARGET_FILE:flycast> > ../symbols/Flycast-arm64.sym
 			)
 		endif()
 	endif()
@@ -376,7 +376,7 @@ if(USE_OPENMP)
 				message("-- Found OpenMP.xcframework: ${OPENMP_FRAMEWORK} (Linking static library before CMake support linking xcframework)")
 				target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENMP_FRAMEWORK})
 				target_include_directories(${PROJECT_NAME} PRIVATE ${OPENMP_XCFRAMEWORK}/ios-arm64_arm64e/OpenMP.framework/Versions/A/Headers)
-				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fopenmp")
+				target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Xclang -fopenmp>)
 			endif()
 		else()
 			message("-- Could NOT find OpenMP.xcframework, compile it using shell/apple/emulator-ios/OpenMP/build_ios_openmp.sh")
@@ -1649,7 +1649,7 @@ if(NOT LIBRETRO)
 					shell/apple/emulator-ios/emulator/iCade-iOS/iCadeReaderView.h
 					shell/apple/emulator-ios/emulator/iCade-iOS/iCadeReaderView.m
 					shell/apple/emulator-ios/emulator/iCade-iOS/iCadeState.h)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc -fmodules")
+			target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fobjc-arc -fmodules>)
 			set_source_files_properties(shell/apple/emulator-ios/emulator/FlycastViewController.mm PROPERTIES COMPILE_OPTIONS -fcxx-modules)
 			set_source_files_properties(shell/apple/emulator-ios/emulator/iCade-iOS/iCadeReaderView.m PROPERTIES COMPILE_OPTIONS -fno-objc-arc)
 
@@ -1715,15 +1715,9 @@ if(NOT LIBRETRO)
 
 			add_subdirectory(core/deps/Syphon)
 			target_link_libraries(${PROJECT_NAME} PRIVATE Syphon)
-			if(${CMAKE_GENERATOR} MATCHES "^Xcode.*")
-				add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy ${SYPHON_METALLIB}
-					${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app/Contents/Resources/)
-			else()
-				add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy ${SYPHON_METALLIB}
-					${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app/Contents/Resources/)
-			endif()
+			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy ${SYPHON_METALLIB}
+				$<TARGET_FILE_DIR:flycast>/../Resources/)
 			target_compile_definitions(${PROJECT_NAME} PRIVATE VIDEO_ROUTING)
 
 			target_sources(${PROJECT_NAME} PRIVATE
@@ -1774,15 +1768,9 @@ if(NOT LIBRETRO)
 				${IOSURFACE_LIBRARY}
 				${MULTITOUCH_SUPPORT_LIBRARY})
 
-			if(${CMAKE_GENERATOR} MATCHES "^Xcode.*")
-				add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy "$ENV{VULKAN_SDK}/lib/libMoltenVK.dylib"
-					${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Flycast.app/Contents/Frameworks/libvulkan.dylib)
-			else()
-				add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy "$ENV{VULKAN_SDK}/lib/libMoltenVK.dylib"
-					${CMAKE_CURRENT_BINARY_DIR}/Flycast.app/Contents/Frameworks/libvulkan.dylib)
-			endif()
+			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy "$ENV{VULKAN_SDK}/lib/libMoltenVK.dylib"
+				$<TARGET_FILE_DIR:flycast>/../Frameworks/libvulkan.dylib)
 		endif()
 	elseif(UNIX)
 		if(NOT BUILD_TESTING)
