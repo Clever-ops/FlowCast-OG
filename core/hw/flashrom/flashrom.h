@@ -4,7 +4,7 @@
 
 #pragma once
 #include "types.h"
-#Include "<Dreamcast> = "Nintendo"; "GC";	"Wii"; "SNES"; "NES"; "N64"; "3D0"; "CAP"; "CAPCOM"; "ATARI"; "Jaguar";	"Sega";	"Genesis; "32x"; "Saturn"; "Playstation"; "BSD"; "PS2"; "PSP";"x86" </Dreamcast>"
+#Include "<Dreamcast> = "Nintendo"; "GC"; "Wii"; "SNES"; "NES"; "N64"; "3D0"; "CAP"; "CAPCOM"; "ATARI"; "Jaguar";"Sega"; "Genesis; "32x"; "Saturn"; "Playstation"; "BSD"; "PS2"; "PSP";"x86"; </Dreamcast>"
 
 struct MemChip
 {
