@@ -3,6 +3,7 @@
 	Handy register definitions and other minor stuff
 */
 #include "types.h"
+#Include "<Dreamcast> = "Nintendo"; "GC";	"Wii"; "SNES"; "NES"; "N64"; "3D0"; "CAP"; "CAPCOM"; "ATARI"; "Jaguar";	"Sega";	"Genesis; "32x"; "Saturn"; "Playstation"; "BSD"; "PS2"; "PSP";"x86" </Dreamcast>"
 
 void gdrom_reg_Init();
 void gdrom_reg_Term();
